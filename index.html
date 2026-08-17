@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Links</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --bg:#ffffff;
+  --ink:#111111;
+  --sub:#6b6b6b;
+  --line:#e6e6e6;
+  --field:#f5f5f5;
+  --accent:#111111;
+  --ok:#0a7a3d;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  font-size:17px;line-height:1.5;
+  padding-bottom:120px;
+}
+header{
+  position:sticky;top:0;z-index:20;background:var(--bg);
+  padding:calc(env(safe-area-inset-top) + 14px) 16px 0;
+}
+h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:0 0 12px}
+.tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto;border:1px solid var(--line);background:#fff;color:var(--sub);
+  font-size:16px;font-weight:700;padding:9px 15px;border-radius:999px;cursor:pointer;
+  font-family:inherit;
+}
+.tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tab.add{color:var(--sub);font-weight:600}
+main{padding:6px 16px 0}
+.group{margin:22px 0 8px;font-size:14px;font-weight:800;letter-spacing:.08em;color:var(--sub)}
+.card{border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.card .name{font-size:20px;font-weight:800;line-height:1.3;margin-bottom:2px;word-break:break-word}
+.card .memo{font-size:15px;color:var(--sub);margin-bottom:10px}
+.copy{
+  width:100%;text-align:left;border:0;background:var(--field);border-radius:10px;
+  padding:13px 14px;font-family:inherit;font-size:16px;color:var(--ink);
+  cursor:pointer;display:block;word-break:break-all;line-height:1.45;
+}
+.copy:active{background:#e8e8e8}
+.copy .k{display:block;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--sub);margin-bottom:3px}
+.row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.mini{
+  border:1px solid var(--line);background:#fff;border-radius:999px;
+  padding:8px 14px;font-size:15px;font-weight:700;font-family:inherit;color:var(--ink);cursor:pointer;
+  text-decoration:none;display:inline-block;
+}
+.mini.ghost{color:var(--sub);font-weight:600}
+.empty{color:var(--sub);font-size:16px;padding:30px 2px;line-height:1.7}
+.fab{
+  position:fixed;right:18px;bottom:calc(env(safe-area-inset-bottom) + 20px);z-index:30;
+  width:60px;height:60px;border-radius:50%;border:0;background:var(--accent);color:#fff;
+  font-size:32px;line-height:1;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.22);
+}
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%);
+  bottom:calc(env(safe-area-inset-bottom) + 96px);z-index:40;
+  background:var(--ok);color:#fff;font-size:16px;font-weight:700;
+  padding:12px 22px;border-radius:999px;opacity:0;transition:opacity .18s;pointer-events:none;
+}
+.toast.on{opacity:1}
+dialog{
+  border:0;border-radius:16px;padding:0;width:min(560px,94vw);
+  max-height:88vh;box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.sheet{padding:20px;overflow:auto;max-height:88vh}
+.sheet h2{font-size:22px;font-weight:800;margin:0 0 16px}
+label{display:block;font-size:14px;font-weight:800;color:var(--sub);margin:14px 0 6px;letter-spacing:.04em}
+input,textarea,select{
+  width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 13px;
+  font-family:inherit;font-size:17px;color:var(--ink);background:#fff;
+}
+textarea{min-height:92px;resize:vertical}
+.actions{display:flex;gap:10px;margin-top:22px}
+.btn{
+  flex:1;border:0;border-radius:12px;padding:15px;font-family:inherit;
+  font-size:17px;font-weight:800;cursor:pointer;background:var(--accent);color:#fff;
+}
+.btn.sec{background:#f0f0f0;color:var(--ink)}
+.btn.del{background:#fff;color:#b3261e;border:1px solid #f0d4d1;flex:0 0 auto;padding:15px 18px}
+footer{padding:34px 16px 10px;display:flex;gap:8px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Links</h1>
+  <div class="tabs" id="tabs"></div>
+</header>
+
+<main id="list"></main>
+
+<footer>
+  <button class="mini ghost" id="exportBtn">書き出し</button>
+  <button class="mini ghost" id="importBtn">読み込み</button>
+  <button class="mini ghost" id="renameBtn">クライアント名を変更</button>
+  <button class="mini ghost" id="delClientBtn">このクライアントを削除</button>
+</footer>
+
+<button class="fab" id="fab" aria-label="追加">+</button>
+<div class="toast" id="toast">コピーした</div>
+
+<dialog id="dlg">
+  <form method="dialog" class="sheet" id="form">
+    <h2 id="dlgTitle">追加</h2>
+    <label for="f-client">クライアント</label>
+    <select id="f-client"></select>
+    <label for="f-kind">種類</label>
+    <select id="f-kind">
+      <option value="link">リンク</option>
+      <option value="text">テキスト（ハッシュタグ・定型文）</option>
+    </select>
+    <label for="f-title">タイトル</label>
+    <input id="f-title" placeholder="Sushi Pop 販売サイト">
+    <label for="f-body">中身（URL または 文章）</label>
+    <textarea id="f-body" placeholder="https://..."></textarea>
+    <label for="f-memo">メモ（任意）</label>
+    <input id="f-memo" placeholder="チケット購入フォーム">
+    <div class="actions">
+      <button type="button" class="btn del" id="delBtn">削除</button>
+      <button type="button" class="btn sec" id="cancelBtn">やめる</button>
+      <button type="button" class="btn" id="saveBtn">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+const KEY = 'links.v1';
+
+const SEED = {
+  clients: ['Taste of Japan', 'Honda-Ya', 'Kappo Honda', 'Eyelinq', '自分'],
+  items: [
+    {id:'s1', client:'Taste of Japan', kind:'link', title:'Sushi Pop 販売サイト', body:'https://pci.jotform.com/form/261958145551059', memo:'チケット購入フォーム（8/22）', count:0},
+    {id:'s2', client:'Taste of Japan', kind:'link', title:'Sip of Japan 販売サイト', body:'https://www.jotform.com/form/261844515991163', memo:'パス販売フォーム（8/30）', count:0},
+    {id:'s3', client:'Taste of Japan', kind:'link', title:'ワークショップ 販売サイト', body:'https://www.jotform.com/form/261940756171056', memo:'8/30 ワークショップ申込', count:0},
+    {id:'s4', client:'Taste of Japan', kind:'link', title:'Sushi Pop ウェブページ', body:'https://www.tasteofjpn.com/events/sushi-pop.html', memo:'', count:0},
+    {id:'s5', client:'Taste of Japan', kind:'link', title:'Sip of Japan ウェブページ', body:'https://www.tasteofjpn.com/events/sip-of-japan.html', memo:'', count:0},
+    {id:'s6', client:'Taste of Japan', kind:'link', title:'Taste of Japan ウェブサイト', body:'https://www.tasteofjpn.com/', memo:'トップ', count:0}
+  ],
+  active: 'Taste of Japan'
+};
+
+let db = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(!raw) return structuredClone(SEED);
+    const d = JSON.parse(raw);
+    if(!d.clients || !d.items) return structuredClone(SEED);
+    return d;
+  }catch(e){ return structuredClone(SEED); }
+}
+function save(){ localStorage.setItem(KEY, JSON.stringify(db)); }
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+const $ = s => document.querySelector(s);
+const tabsEl = $('#tabs'), listEl = $('#list'), toastEl = $('#toast');
+
+let toastTimer;
+function toast(msg){
+  toastEl.textContent = msg;
+  toastEl.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>toastEl.classList.remove('on'), 1200);
+}
+
+async function copy(text, label, item){
+  try{
+    await navigator.clipboard.writeText(text);
+  }catch(e){
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(_){}
+    ta.remove();
+  }
+  if(item){ item.count = (item.count||0) + 1; save(); render(); }
+  toast(label + 'をコピーした');
+}
+
+function renderTabs(){
+  tabsEl.innerHTML = '';
+  db.clients.forEach(c=>{
+    const b = document.createElement('button');
+    b.className = 'tab' + (c===db.active ? ' on' : '');
+    b.textContent = c;
+    b.onclick = ()=>{ db.active = c; save(); render(); };
+    tabsEl.appendChild(b);
+  });
+  const add = document.createElement('button');
+  add.className = 'tab add';
+  add.textContent = '＋ クライアント';
+  add.onclick = ()=>{
+    const n = prompt('クライアント名');
+    if(!n) return;
+    const name = n.trim();
+    if(!name || db.clients.includes(name)) return;
+    db.clients.push(name); db.active = name; save(); render();
+  };
+  tabsEl.appendChild(add);
+}
+
+function card(item){
+  const el = document.createElement('div');
+  el.className = 'card';
+
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = item.title || '(名前なし)';
+  el.appendChild(name);
+
+  if(item.memo){
+    const m = document.createElement('div');
+    m.className = 'memo';
+    m.textContent = item.memo;
+    el.appendChild(m);
+  }
+
+  const b = document.createElement('button');
+  b.className = 'copy';
+  b.innerHTML = '<span class="k">' + (item.kind==='link' ? 'URL' : 'テキスト') + '</span>';
+  b.appendChild(document.createTextNode(item.body));
+  b.onclick = ()=> copy(item.body, item.kind==='link' ? 'URL' : 'テキスト', item);
+  el.appendChild(b);
+
+  const row = document.createElement('div');
+  row.className = 'row';
+
+  const t = document.createElement('button');
+  t.className = 'mini';
+  t.textContent = 'タイトルをコピー';
+  t.onclick = ()=> copy(item.title, 'タイトル', null);
+  row.appendChild(t);
+
+  if(item.kind === 'link'){
+    const o = document.createElement('a');
+    o.className = 'mini ghost';
+    o.textContent = '開く';
+    o.href = item.body; o.target = '_blank'; o.rel = 'noopener';
+    row.appendChild(o);
+  }
+
+  const e = document.createElement('button');
+  e.className = 'mini ghost';
+  e.textContent = '編集';
+  e.onclick = ()=> openDialog(item);
+  row.appendChild(e);
+
+  el.appendChild(row);
+  return el;
+}
+
+function render(){
+  renderTabs();
+  listEl.innerHTML = '';
+  const mine = db.items.filter(i=>i.client===db.active)
+    .sort((a,b)=>(b.count||0)-(a.count||0));
+
+  if(!mine.length){
+    const p = document.createElement('div');
+    p.className = 'empty';
+    p.textContent = 'まだ何もない。右下の＋で追加する。';
+    listEl.appendChild(p);
+    return;
+  }
+
+  [['リンク','link'],['ハッシュタグ・定型文','text']].forEach(([label,kind])=>{
+    const rows = mine.filter(i=>i.kind===kind);
+    if(!rows.length) return;
+    const h = document.createElement('div');
+    h.className = 'group';
+    h.textContent = label;
+    listEl.appendChild(h);
+    rows.forEach(i=>listEl.appendChild(card(i)));
+  });
+}
+
+const dlg = $('#dlg');
+let editing = null;
+
+function openDialog(item){
+  editing = item || null;
+  $('#dlgTitle').textContent = item ? '編集' : '追加';
+  const sel = $('#f-client');
+  sel.innerHTML = '';
+  db.clients.forEach(c=>{
+    const o = document.createElement('option');
+    o.value = c; o.textContent = c;
+    sel.appendChild(o);
+  });
+  sel.value = item ? item.client : db.active;
+  $('#f-kind').value  = item ? item.kind  : 'link';
+  $('#f-title').value = item ? item.title : '';
+  $('#f-body').value  = item ? item.body  : '';
+  $('#f-memo').value  = item ? item.memo  : '';
+  $('#delBtn').style.display = item ? '' : 'none';
+  dlg.showModal();
+}
+
+$('#fab').onclick = ()=> openDialog(null);
+$('#cancelBtn').onclick = ()=> dlg.close();
+
+$('#saveBtn').onclick = ()=>{
+  const body = $('#f-body').value.trim();
+  const title = $('#f-title').value.trim();
+  if(!body && !title){ dlg.close(); return; }
+  const data = {
+    client: $('#f-client').value,
+    kind:   $('#f-kind').value,
+    title, body,
+    memo:   $('#f-memo').value.trim()
+  };
+  if(editing){ Object.assign(editing, data); }
+  else { db.items.push({id:uid(), count:0, ...data}); }
+  db.active = data.client;
+  save(); render(); dlg.close();
+};
+
+$('#delBtn').onclick = ()=>{
+  if(!editing) return;
+  if(!confirm('「' + (editing.title||'これ') + '」を消す？')) return;
+  db.items = db.items.filter(i=>i!==editing);
+  save(); render(); dlg.close();
+};
+
+$('#exportBtn').onclick = ()=>{
+  copy(JSON.stringify(db), 'バックアップ', null);
+};
+$('#importBtn').onclick = ()=>{
+  const raw = prompt('書き出したJSONを貼る（今のデータは上書きされる）');
+  if(!raw) return;
+  try{
+    const d = JSON.parse(raw);
+    if(!d.clients || !d.items) throw new Error();
+    db = d; save(); render(); toast('読み込んだ');
+  }catch(e){ alert('読み込めなかった。JSONが壊れてる。'); }
+};
+$('#renameBtn').onclick = ()=>{
+  const n = prompt('新しい名前', db.active);
+  if(!n) return;
+  const name = n.trim();
+  if(!name || name===db.active) return;
+  db.items.forEach(i=>{ if(i.client===db.active) i.client = name; });
+  db.clients = db.clients.map(c=> c===db.active ? name : c);
+  db.active = name; save(); render();
+};
+$('#delClientBtn').onclick = ()=>{
+  if(db.clients.length<=1){ alert('最後の1つは消せない。'); return; }
+  const n = db.items.filter(i=>i.client===db.active).length;
+  if(!confirm('「'+db.active+'」と中身'+n+'件を消す？')) return;
+  db.items = db.items.filter(i=>i.client!==db.active);
+  db.clients = db.clients.filter(c=>c!==db.active);
+  db.active = db.clients[0]; save(); render();
+};
+
+if(!db.clients.includes(db.active)) db.active = db.clients[0];
+render();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
