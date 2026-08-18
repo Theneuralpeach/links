@@ -129,6 +129,11 @@ footer{padding:34px 16px 10px;display:flex;gap:8px;flex-wrap:wrap}
     <input id="f-title" placeholder="Sushi Pop 販売サイト">
     <label for="f-body">中身（URL または 文章）</label>
     <textarea id="f-body" placeholder="https://..."></textarea>
+    <label for="f-url">開く先のURL（任意・テキストにリンクを付けたいとき）</label>
+    <input id="f-url" placeholder="https://www.instagram.com/...">
+    <label for="f-group">グループ（任意）</label>
+    <input id="f-group" list="groups" placeholder="ワークショップ">
+    <datalist id="groups"></datalist>
     <label for="f-memo">メモ（任意）</label>
     <input id="f-memo" placeholder="チケット購入フォーム">
     <div class="actions">
@@ -142,9 +147,27 @@ footer{padding:34px 16px 10px;display:flex;gap:8px;flex-wrap:wrap}
 <script>
 const KEY = 'links.v1';
 
+const IG = [
+  ['ワークショップ', '萩原畳',        'hagihara_tatami_usa'],
+  ['ワークショップ', 'Yoshimi（墨絵）', 'yoshimi925'],
+  ['ワークショップ', 'Mebu（京都ガラス）', 'mebu.light'],
+  ['ワークショップ', 'Ulana',         'ulana_3171'],
+  ['ワークショップ', 'Junko',         'pincushion_junko'],
+  ['ワークショップ', '枡屋',           'masukukan.usa'],
+  ['ショップ・物販', 'JaZoo',         'jazoos_japan'],
+  ['ショップ・物販', '着物おでん',      'kimono_oden'],
+  ['ショップ・物販', 'ふたかたや',      'futakataya'],
+  ['ショップ・物販', '京都かんべ数珠',   'kyotokanbejuzu']
+].map(([group, name, handle], n) => ({
+  id: 'ig' + n, client: 'Sip of Japan', kind: 'text', group,
+  title: name, body: '@' + handle,
+  url: 'https://www.instagram.com/' + handle + '/',
+  memo: '', count: 0
+}));
+
 const SEED = {
-  clients: ['Taste of Japan', 'Honda-Ya', 'Kappo Honda', 'Eyelinq', '自分'],
-  items: [
+  clients: ['Taste of Japan', 'Sip of Japan', 'Honda-Ya', 'Kappo Honda', 'Eyelinq', '自分'],
+  items: [...IG,
     {id:'s1', client:'Taste of Japan', kind:'link', title:'Sushi Pop 販売サイト', body:'https://pci.jotform.com/form/261958145551059', memo:'チケット購入フォーム（8/22）', count:0},
     {id:'s2', client:'Taste of Japan', kind:'link', title:'Sip of Japan 販売サイト', body:'https://www.jotform.com/form/261844515991163', memo:'パス販売フォーム（8/30）', count:0},
     {id:'s3', client:'Taste of Japan', kind:'link', title:'ワークショップ 販売サイト', body:'https://www.jotform.com/form/261940756171056', memo:'8/30 ワークショップ申込', count:0},
@@ -163,6 +186,13 @@ function load(){
     if(!raw) return structuredClone(SEED);
     const d = JSON.parse(raw);
     if(!d.clients || !d.items) return structuredClone(SEED);
+    // 追加シードの取り込み（既に入っているものは触らない）
+    const have = new Set(d.items.map(i=>i.id));
+    IG.forEach(i=>{ if(!have.has(i.id)) d.items.push(structuredClone(i)); });
+    if(!d.clients.includes('Sip of Japan')){
+      const at = d.clients.indexOf('Taste of Japan');
+      d.clients.splice(at < 0 ? d.clients.length : at + 1, 0, 'Sip of Japan');
+    }
     return d;
   }catch(e){ return structuredClone(SEED); }
 }
@@ -234,9 +264,11 @@ function card(item){
 
   const b = document.createElement('button');
   b.className = 'copy';
-  b.innerHTML = '<span class="k">' + (item.kind==='link' ? 'URL' : 'テキスト') + '</span>';
+  const kind = item.kind==='link' ? 'URL'
+             : /^@/.test(item.body) ? 'アカウント名' : 'テキスト';
+  b.innerHTML = '<span class="k">' + kind + '</span>';
   b.appendChild(document.createTextNode(item.body));
-  b.onclick = ()=> copy(item.body, item.kind==='link' ? 'URL' : 'テキスト', item);
+  b.onclick = ()=> copy(item.body, kind, item);
   el.appendChild(b);
 
   const row = document.createElement('div');
@@ -248,11 +280,12 @@ function card(item){
   t.onclick = ()=> copy(item.title, 'タイトル', null);
   row.appendChild(t);
 
-  if(item.kind === 'link'){
+  const href = item.url || (item.kind === 'link' ? item.body : '');
+  if(href){
     const o = document.createElement('a');
     o.className = 'mini ghost';
     o.textContent = '開く';
-    o.href = item.body; o.target = '_blank'; o.rel = 'noopener';
+    o.href = href; o.target = '_blank'; o.rel = 'noopener';
     row.appendChild(o);
   }
 
@@ -280,9 +313,12 @@ function render(){
     return;
   }
 
-  [['リンク','link'],['ハッシュタグ・定型文','text']].forEach(([label,kind])=>{
-    const rows = mine.filter(i=>i.kind===kind);
-    if(!rows.length) return;
+  const labelOf = i => i.group || (i.kind==='link' ? 'リンク' : 'ハッシュタグ・定型文');
+  const order = [];
+  mine.forEach(i=>{ const l = labelOf(i); if(!order.includes(l)) order.push(l); });
+
+  order.forEach(label=>{
+    const rows = mine.filter(i=>labelOf(i)===label);
     const h = document.createElement('div');
     h.className = 'group';
     h.textContent = label;
@@ -308,7 +344,15 @@ function openDialog(item){
   $('#f-kind').value  = item ? item.kind  : 'link';
   $('#f-title').value = item ? item.title : '';
   $('#f-body').value  = item ? item.body  : '';
+  $('#f-url').value   = item ? (item.url || '')   : '';
+  $('#f-group').value = item ? (item.group || '') : '';
   $('#f-memo').value  = item ? item.memo  : '';
+
+  const dl = $('#groups');
+  dl.innerHTML = '';
+  [...new Set(db.items.map(i=>i.group).filter(Boolean))].forEach(g=>{
+    const o = document.createElement('option'); o.value = g; dl.appendChild(o);
+  });
   $('#delBtn').style.display = item ? '' : 'none';
   dlg.showModal();
 }
@@ -324,6 +368,8 @@ $('#saveBtn').onclick = ()=>{
     client: $('#f-client').value,
     kind:   $('#f-kind').value,
     title, body,
+    url:    $('#f-url').value.trim(),
+    group:  $('#f-group').value.trim(),
     memo:   $('#f-memo').value.trim()
   };
   if(editing){ Object.assign(editing, data); }
@@ -370,6 +416,7 @@ $('#delClientBtn').onclick = ()=>{
 };
 
 if(!db.clients.includes(db.active)) db.active = db.clients[0];
+save();
 render();
 
 if('serviceWorker' in navigator){
