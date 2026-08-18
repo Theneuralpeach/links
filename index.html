@@ -274,10 +274,11 @@ function card(item){
   const row = document.createElement('div');
   row.className = 'row';
 
+  const isAccount = kind === 'アカウント名';
   const t = document.createElement('button');
-  t.className = 'mini';
-  t.textContent = 'タイトルをコピー';
-  t.onclick = ()=> copy(item.title, 'タイトル', null);
+  t.className = 'mini' + (isAccount ? ' ghost' : '');
+  t.textContent = isAccount ? '名前をコピー' : 'タイトルをコピー';
+  t.onclick = ()=> copy(item.title, isAccount ? '名前' : 'タイトル', null);
   row.appendChild(t);
 
   const href = item.url || (item.kind === 'link' ? item.body : '');
