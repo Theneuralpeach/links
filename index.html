@@ -53,6 +53,16 @@ main{padding:6px 16px 0}
 }
 .copy:active{background:#e8e8e8}
 .copy .k{display:block;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--sub);margin-bottom:3px}
+.phrases{margin-top:8px}
+.phrases .k{display:block;font-size:12px;font-weight:800;letter-spacing:.06em;color:var(--sub);margin:10px 0 6px}
+.phrase{
+  width:100%;text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:11px 14px;margin-bottom:6px;font-family:inherit;font-size:16px;font-weight:600;color:var(--ink);
+  cursor:pointer;display:block;line-height:1.4;word-break:break-word;
+}
+.phrase:active{background:var(--field)}
+.phrase::before{content:"“";color:var(--sub);margin-right:2px}
+.phrase::after{content:"”";color:var(--sub);margin-left:2px}
 .row{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
 .mini{
   border:1px solid var(--line);background:#fff;border-radius:999px;
@@ -131,6 +141,8 @@ footer{padding:34px 16px 10px;display:flex;gap:8px;flex-wrap:wrap}
     <textarea id="f-body" placeholder="https://..."></textarea>
     <label for="f-url">開く先のURL（任意・テキストにリンクを付けたいとき）</label>
     <input id="f-url" placeholder="https://www.instagram.com/...">
+    <label for="f-phrases">フレーズ（任意・ストーリーに載せる一言。1行に1つ、3つくらい）</label>
+    <textarea id="f-phrases" placeholder="Get your free gift&#10;Sign up, get a free gift on the day&#10;Free admission + free gift 🎁"></textarea>
     <label for="f-group">グループ（任意）</label>
     <input id="f-group" list="groups" placeholder="ワークショップ">
     <datalist id="groups"></datalist>
@@ -165,9 +177,20 @@ const IG = [
   memo: '', count: 0
 }));
 
+// Honda-Ya: 2026-09-26 追加（イベントページ＋フリーギフト登録）。ストーリー用フレーズ付き
+const HY = [
+  {id:'hy-event', client:'Honda-Ya', kind:'link', group:'イベント', title:'イベントページ',
+   body:'https://izakayahondaya.com/festival/', memo:'Tustin Japanese Festival 2026 · 10/4 · 公式サイト',
+   phrases:['Free admission · October 4 · HONDA-YA Tustin', 'Japanese food, live stage and Bon Odori', 'See the full lineup'], count:0},
+  {id:'hy-gift', client:'Honda-Ya', kind:'link', group:'イベント', title:'イベントフリーギフト',
+   body:'https://www.eventbrite.com/e/giveaway-alert-japanese-festival-in-tustin-2026-honda-ya-charity-event-tickets-1997635774376',
+   memo:'Eventbrite 登録 → 当日ギフト',
+   phrases:['Get your free gift', 'Sign up, get a free gift on the day', 'Free admission + free gift 🎁'], count:0}
+];
+
 const SEED = {
-  clients: ['Taste of Japan', 'Sip of Japan', 'Honda-Ya', 'Kappo Honda', 'Eyelinq', '自分'],
-  items: [...IG,
+  clients: ['Honda-Ya', 'Taste of Japan', 'Sip of Japan', 'Kappo Honda', 'Eyelinq', '自分'],
+  items: [...HY, ...IG,
     {id:'s1', client:'Taste of Japan', kind:'link', title:'Sushi Pop 販売サイト', body:'https://pci.jotform.com/form/261958145551059', memo:'チケット購入フォーム（8/22）', count:0},
     {id:'s2', client:'Taste of Japan', kind:'link', title:'Sip of Japan 販売サイト', body:'https://www.jotform.com/form/261844515991163', memo:'パス販売フォーム（8/30）', count:0},
     {id:'s3', client:'Taste of Japan', kind:'link', title:'ワークショップ 販売サイト', body:'https://www.jotform.com/form/261940756171056', memo:'8/30 ワークショップ申込', count:0},
@@ -175,7 +198,8 @@ const SEED = {
     {id:'s5', client:'Taste of Japan', kind:'link', title:'Sip of Japan ウェブページ', body:'https://www.tasteofjpn.com/events/sip-of-japan.html', memo:'', count:0},
     {id:'s6', client:'Taste of Japan', kind:'link', title:'Taste of Japan ウェブサイト', body:'https://www.tasteofjpn.com/', memo:'トップ', count:0}
   ],
-  active: 'Taste of Japan'
+  active: 'Honda-Ya',
+  v: 2
 };
 
 let db = load();
@@ -193,6 +217,27 @@ function load(){
       const at = d.clients.indexOf('Taste of Japan');
       d.clients.splice(at < 0 ? d.clients.length : at + 1, 0, 'Sip of Japan');
     }
+    // v2（2026-09-26）: Honda-Ya を先頭に、イベントページ＋フリーギフトを追加（一度だけ）
+    if((d.v||1) < 2){
+      if(!d.clients.includes('Honda-Ya')) d.clients.push('Honda-Ya');
+      d.clients = ['Honda-Ya', ...d.clients.filter(c=>c!=='Honda-Ya')];
+      const hyItems = d.items.filter(i=>i.client==='Honda-Ya');
+      const hasGift = hyItems.find(i=>/gift|ギフト/i.test(i.title||'') && !(i.phrases&&i.phrases.length));
+      HY.forEach(seed=>{
+        if(have.has(seed.id)) return;
+        if(seed.id==='hy-gift' && hasGift){
+          // 既にフリーギフトのリンクがある → URLは触らず、フレーズだけ足す
+          hasGift.phrases = seed.phrases.slice();
+          if(!hasGift.group) hasGift.group = seed.group;
+          return;
+        }
+        if(seed.id==='hy-event' && hyItems.some(i=>i.body===seed.body)) return;
+        d.items.push(structuredClone(seed));
+      });
+      d.active = 'Honda-Ya';
+      d.v = 2;
+    }
+    d.items.forEach(i=>{ if(!Array.isArray(i.phrases)) i.phrases = []; });
     return d;
   }catch(e){ return structuredClone(SEED); }
 }
@@ -271,15 +316,33 @@ function card(item){
   b.onclick = ()=> copy(item.body, kind, item);
   el.appendChild(b);
 
+  // ストーリーに載せる一言（1タップでコピー）
+  const phrases = (item.phrases||[]).filter(Boolean);
+  if(phrases.length){
+    const box = document.createElement('div');
+    box.className = 'phrases';
+    box.innerHTML = '<span class="k">フレーズ</span>';
+    phrases.forEach(p=>{
+      const pb = document.createElement('button');
+      pb.className = 'phrase';
+      pb.textContent = p;
+      pb.onclick = ()=> copy(p, 'フレーズ', item);
+      box.appendChild(pb);
+    });
+    el.appendChild(box);
+  }
+
   const row = document.createElement('div');
   row.className = 'row';
 
   const isAccount = kind === 'アカウント名';
-  const t = document.createElement('button');
-  t.className = 'mini' + (isAccount ? ' ghost' : '');
-  t.textContent = isAccount ? '名前をコピー' : 'タイトルをコピー';
-  t.onclick = ()=> copy(item.title, isAccount ? '名前' : 'タイトル', null);
-  row.appendChild(t);
+  if(isAccount || !phrases.length){
+    const t = document.createElement('button');
+    t.className = 'mini' + (isAccount ? ' ghost' : '');
+    t.textContent = isAccount ? '名前をコピー' : 'タイトルをコピー';
+    t.onclick = ()=> copy(item.title, isAccount ? '名前' : 'タイトル', null);
+    row.appendChild(t);
+  }
 
   const href = item.url || (item.kind === 'link' ? item.body : '');
   if(href){
@@ -346,6 +409,7 @@ function openDialog(item){
   $('#f-title').value = item ? item.title : '';
   $('#f-body').value  = item ? item.body  : '';
   $('#f-url').value   = item ? (item.url || '')   : '';
+  $('#f-phrases').value = item ? (item.phrases||[]).join('\n') : '';
   $('#f-group').value = item ? (item.group || '') : '';
   $('#f-memo').value  = item ? item.memo  : '';
 
@@ -370,6 +434,7 @@ $('#saveBtn').onclick = ()=>{
     kind:   $('#f-kind').value,
     title, body,
     url:    $('#f-url').value.trim(),
+    phrases: $('#f-phrases').value.split('\n').map(s=>s.trim()).filter(Boolean),
     group:  $('#f-group').value.trim(),
     memo:   $('#f-memo').value.trim()
   };
@@ -395,6 +460,7 @@ $('#importBtn').onclick = ()=>{
   try{
     const d = JSON.parse(raw);
     if(!d.clients || !d.items) throw new Error();
+    d.items.forEach(i=>{ if(!Array.isArray(i.phrases)) i.phrases = []; });
     db = d; save(); render(); toast('読み込んだ');
   }catch(e){ alert('読み込めなかった。JSONが壊れてる。'); }
 };
